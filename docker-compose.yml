@@ -1,0 +1,66 @@
+version: "3"
+services:
+  api:
+    container_name: api
+    build:
+      context: .
+      target: builder
+    command: reflex -r "\.go$$" -s -- sh -c "go run main.go"
+    ports:
+      - 80:80
+    volumes:
+      - .:/go/src/app
+      - go-cache:/.go-cache
+      - go-mod-cache:/.go-mod-cache
+    networks:
+      - lab
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - 9000:9090
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command: --web.enable-lifecycle  --config.file=/etc/prometheus/prometheus.yml
+    networks:
+      - lab
+
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager:/config
+    command: --config.file=/config/alertmanager.yml --log.level=debug
+    networks:
+      - lab
+
+  pushgateway:
+    container_name: pushgateway
+    image: prom/pushgateway
+    ports:
+      - 9091:9091
+    networks:
+      - lab
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - lab
+
+networks:
+  lab:
+
+volumes:
+  go-cache:
+  go-mod-cache:
+  prometheus_data:
+  grafana-data:
